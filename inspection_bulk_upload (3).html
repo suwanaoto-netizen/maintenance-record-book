@@ -1,0 +1,3130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定期点検整備計画 (β版) — Logipoke</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #009999;
+    --primary-shadow: rgba(0, 153, 153, 0.2);
+    --primary-bg: #e6f5f5;
+    --text-dark: #202830;
+    --text-mid: #253733;
+    --text-light: #4d5c58;
+    --text-lightest: #646f6b;
+    --border: #cdcfd1;
+    --border-light: rgba(0, 0, 0, 0.12);
+    --bg: #f5f7f7;
+    --bg-surface: #ffffff;
+    --bg-hover: #f0f5f5;
+    --success: #2da771;
+    --warning: #d98c1f;
+    --danger: #d04848;
+    --warning-bg: #fff5e6;
+    --success-bg: #e6f5ec;
+    --danger-bg: #fae6e6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Noto Sans JP', 'Roboto', -apple-system, sans-serif;
+    color: var(--text-dark);
+    background: var(--bg);
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, select { font-family: inherit; font-size: inherit; }
+
+  /* ========== LAYOUT ========== */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 240px;
+    background: #1a3a3a;
+    color: #fff;
+    padding: 20px 0;
+    flex-shrink: 0;
+  }
+  .sidebar .logo {
+    padding: 0 24px 24px;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar .logo span { color: var(--primary); }
+  .sidebar nav { padding-top: 12px; }
+  .nav-section { padding: 16px 24px 4px; font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 24px;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .nav-item.active { background: rgba(0,153,153,0.18); color: #fff; border-left: 3px solid var(--primary); padding-left: 21px; }
+  .nav-item .icon { width: 18px; height: 18px; opacity: .8; }
+
+  .main { flex: 1; display: flex; flex-direction: column; }
+  .header {
+    height: 56px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
+  .header .search {
+    width: 360px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-light);
+  }
+  .header .search input { border: none; background: transparent; outline: none; flex: 1; }
+  .header .user {
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
+  }
+  .header .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), #007a7a);
+    color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  }
+
+  /* ========== PAGE BODY ========== */
+  .page-body { padding: 20px 24px 40px; flex: 1; overflow-y: auto; }
+  .breadcrumb { color: var(--text-light); font-size: 13px; margin-bottom: 6px; }
+  .breadcrumb span { color: var(--text-light); }
+  .page-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .page-head h1 { font-size: 26px; font-weight: 700; color: var(--text-mid); letter-spacing: -0.5px; }
+  .page-head .actions { display: flex; gap: 8px; }
+  .btn {
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: transform .08s, box-shadow .12s, background .12s;
+    user-select: none;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 4px 10px var(--primary-shadow);
+  }
+  .btn-primary:hover { background: #008888; box-shadow: 0 6px 14px var(--primary-shadow); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-secondary {
+    background: #fff;
+    color: var(--text-mid);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--bg-hover); }
+  .btn-ghost { background: transparent; color: var(--text-light); }
+  .btn-ghost:hover { background: var(--bg-hover); color: var(--text-mid); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* === 仮確定ボタン（プライマリの outlined 版） === */
+  .btn-tentative {
+    background: #fff;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+  }
+  .btn-tentative:hover { background: var(--primary-bg); }
+
+  /* === スプリットボタン（メイン + ▼） === */
+  .split-btn {
+    display: inline-flex;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px var(--primary-shadow);
+    position: relative;
+  }
+  .split-btn .split-main {
+    height: 40px;
+    padding: 0 16px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700; font-size: 14px;
+    border-radius: 6px 0 0 6px;
+    display: inline-flex; align-items: center; gap: 6px;
+    border-right: 1px solid rgba(255,255,255,0.18);
+    transition: background .12s;
+  }
+  .split-btn .split-main:hover { background: #008888; }
+  .split-btn .split-toggle {
+    height: 40px;
+    width: 36px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 0 6px 6px 0;
+    display: grid; place-items: center;
+    transition: background .12s;
+  }
+  .split-btn .split-toggle:hover { background: #008888; }
+  .split-btn .split-menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    min-width: 280px;
+    padding: 6px;
+    display: none;
+    z-index: 10;
+  }
+  .split-btn .split-menu.show { display: block; animation: slideUp .15s ease-out; }
+  .split-btn .split-menu-item {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 6px;
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px;
+    color: var(--text-dark);
+    transition: background .1s;
+  }
+  .split-btn .split-menu-item:hover { background: var(--bg-hover); }
+  .split-btn .split-menu-item .item-icon {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: grid; place-items: center;
+    background: var(--primary-bg);
+    color: var(--primary);
+  }
+  .split-btn .split-menu-item .item-text strong { display: block; font-weight: 700; color: var(--text-mid); }
+  .split-btn .split-menu-item .item-text small { display: block; color: var(--text-light); font-size: 11px; margin-top: 2px; }
+  .split-btn .split-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* === プレビュー上の確定／仮確定スタンプ === */
+  .preview-stamp {
+    position: absolute;
+    top: 24px; right: 32px;
+    padding: 8px 16px;
+    border: 3px solid;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    transform: rotate(-8deg);
+    opacity: 0.85;
+    z-index: 5;
+    pointer-events: none;
+    animation: stampIn .35s ease-out;
+    font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+  }
+  .preview-stamp.confirmed {
+    color: var(--success);
+    border-color: var(--success);
+    background: rgba(45, 167, 113, 0.08);
+  }
+  .preview-stamp.tentative {
+    color: var(--warning);
+    border-color: var(--warning);
+    background: rgba(217, 140, 31, 0.08);
+  }
+  .preview-stamp.skipped {
+    color: var(--text-lightest);
+    border-color: var(--text-lightest);
+    background: rgba(100, 111, 107, 0.08);
+  }
+  @keyframes stampIn {
+    0%   { transform: rotate(-8deg) scale(2); opacity: 0; }
+    60%  { transform: rotate(-8deg) scale(0.9); opacity: 1; }
+    100% { transform: rotate(-8deg) scale(1); opacity: 0.85; }
+  }
+
+  /* サムネ：仮確定ステータス */
+  .thumb-status.tentative { background: var(--warning); }
+  .thumb-status-icon.tentative { background: var(--warning); }
+
+  /* ========== FILTER CARD ========== */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .filter-card { padding: 20px 24px; }
+  .filter-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .filter-title { font-size: 14px; font-weight: 700; color: var(--text-mid); display: flex; align-items: center; gap: 8px; }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-light);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .form-control {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color .12s;
+  }
+  .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-shadow); }
+  select.form-control { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234d5c58' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 34px; }
+  .filter-footer { margin-top: 16px; display: flex; gap: 8px; }
+
+  /* ========== TABLE ========== */
+  .table-card { overflow: hidden; }
+  .table-wrap { overflow-x: auto; }
+  table.inspection-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 1400px;
+  }
+  .inspection-table thead th {
+    background: #f8fafa;
+    color: var(--text-light);
+    font-weight: 500;
+    font-size: 12px;
+    text-align: left;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky; top: 0;
+  }
+  .inspection-table tbody td {
+    padding: 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .inspection-table .cell-text {
+    padding: 12px 10px;
+    white-space: nowrap;
+  }
+  .row-group td { padding: 0; }
+  .row-pair { display: flex; flex-direction: column; }
+  .row-pair .sub-row {
+    height: 36px;
+    display: flex; align-items: center;
+    padding: 0 10px;
+    border-bottom: 1px solid rgba(205, 207, 209, 0.4);
+    font-size: 12px;
+    color: var(--text-light);
+  }
+  .row-pair .sub-row:last-child { border-bottom: none; }
+  .row-pair .sub-row.planned { color: var(--text-light); }
+  .row-pair .sub-row.actual { color: var(--text-mid); font-weight: 500; }
+  .label-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 22px; padding: 0 8px;
+    border-radius: 11px;
+    font-size: 11px; font-weight: 500;
+  }
+  .pill-plan { background: #f0f5f5; color: var(--text-light); }
+  .pill-done { background: var(--success-bg); color: var(--success); }
+  .pill-overdue { background: var(--danger-bg); color: var(--danger); }
+  .pill-warn { background: var(--warning-bg); color: var(--warning); }
+  .month-cell {
+    text-align: center;
+    width: 86px;
+    font-size: 11px;
+  }
+  .row-vehicle td { background: #fff; }
+  .row-vehicle:hover td { background: #fafcfc; }
+
+  /* ========== MODAL CORE ========== */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(32, 40, 48, 0.45);
+    display: none;
+    z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(2px);
+    animation: fadeIn .18s ease-out;
+  }
+  .overlay.show { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: slideUp .22s ease-out;
+    max-height: calc(100vh - 48px);
+  }
+  .modal-title {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .modal-title h2 {
+    font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: 0.6px;
+  }
+  .modal-title .step-counter {
+    font-size: 14px; color: var(--text-light); font-weight: 500;
+    margin-left: 12px;
+  }
+  .modal-close { width: 36px; height: 36px; border-radius: 6px; display: grid; place-items: center; color: var(--text-light); }
+  .modal-close:hover { background: var(--bg-hover); color: var(--text-mid); }
+  .modal-body { padding: 24px; flex: 1; overflow-y: auto; }
+  .modal-foot {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fff;
+    flex-shrink: 0;
+  }
+  .modal-foot .foot-right { display: flex; gap: 8px; }
+
+  /* ========== INTRO MODAL ========== */
+  .intro-modal { width: 640px; max-width: 100%; }
+  .intro-body { text-align: center; padding: 32px 24px; }
+  .intro-illust {
+    width: 88px; height: 88px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: var(--primary-bg);
+    display: grid; place-items: center;
+    color: var(--primary);
+  }
+  .intro-text { font-size: 16px; color: var(--text-dark); line-height: 1.7; }
+  .intro-check { margin-top: 20px; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); cursor: pointer; }
+  .intro-check input { width: 16px; height: 16px; accent-color: var(--primary); }
+
+  /* ========== UPLOAD MODAL ========== */
+  .upload-modal { width: 720px; max-width: 100%; }
+  .dropzone {
+    border: 2px dashed var(--border);
+    background: #fafcfc;
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    transition: border-color .15s, background .15s;
+    cursor: pointer;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .dropzone .dz-icon { width: 56px; height: 56px; color: var(--primary); margin: 0 auto 16px; }
+  .dropzone .dz-title { font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+  .dropzone .dz-sub { font-size: 13px; color: var(--text-light); }
+  .dropzone .dz-or { margin-top: 16px; }
+  .dropzone .dz-btn {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 20px;
+    background: #fff;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .file-list {
+    margin-top: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .file-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: #fafcfc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .file-row .file-icon {
+    width: 36px; height: 36px; flex-shrink: 0;
+    border-radius: 6px;
+    background: var(--primary-bg);
+    color: var(--primary);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 10px;
+  }
+  .file-row .file-meta { flex: 1; min-width: 0; }
+  .file-row .file-name { font-weight: 500; color: var(--text-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-row .file-size { font-size: 11px; color: var(--text-light); }
+  .file-row .file-status { font-size: 11px; padding: 3px 8px; border-radius: 10px; }
+  .file-row .file-remove { width: 32px; height: 32px; border-radius: 6px; color: var(--text-light); display: grid; place-items: center; }
+  .file-row .file-remove:hover { background: #fae6e6; color: var(--danger); }
+  .progress-bar { height: 4px; background: #eee; border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .progress-bar > div { height: 100%; background: var(--primary); width: 0; transition: width .3s; }
+
+  /* ========== MAIN MODAL (REVIEW) ========== */
+  .review-modal {
+    width: calc(100vw - 48px);
+    max-width: 1648px;
+    height: calc(100vh - 48px);
+    max-height: 1116px;
+  }
+  .review-body { padding: 0; display: flex; flex: 1; min-height: 0; }
+  .review-left {
+    width: 65%;
+    background: #2c3a3a;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .preview-toolbar {
+    height: 56px;
+    background: #1a3a3a;
+    color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+    flex-shrink: 0;
+  }
+  .preview-toolbar .tools { display: flex; gap: 4px; }
+  .tool-btn {
+    width: 36px; height: 36px; border-radius: 6px;
+    display: grid; place-items: center;
+    color: rgba(255,255,255,0.7);
+    transition: background .12s;
+  }
+  .tool-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+  /* === Pager (大きく分かりやすく) === */
+  .preview-pager { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .pager-btn {
+    display: flex; align-items: center; gap: 6px;
+    height: 36px; padding: 0 14px;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    transition: background .15s, opacity .15s;
+  }
+  .pager-btn:hover:not(:disabled) { background: rgba(255,255,255,0.16); }
+  .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .pager-current {
+    display: flex; align-items: center; gap: 4px;
+    padding: 0 14px; height: 36px;
+    background: rgba(0,153,153,0.18);
+    border: 1px solid rgba(0,153,153,0.4);
+    border-radius: 6px;
+    color: #fff; font-weight: 700;
+    font-family: 'Roboto', sans-serif;
+    min-width: 78px;
+    justify-content: center;
+  }
+  .pager-current .now { font-size: 16px; color: #6dd; }
+  .pager-current .sep { color: rgba(255,255,255,0.4); margin: 0 2px; }
+  .pager-current .total { color: rgba(255,255,255,0.7); font-size: 13px; }
+
+  /* === Thumbnail strip === */
+  .thumb-strip {
+    flex-shrink: 0;
+    background: #1a3a3a;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 12px 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+  }
+  .thumb-strip::-webkit-scrollbar { height: 6px; }
+  .thumb-strip::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+  .thumb-strip-label {
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    padding: 0 4px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    line-height: 1;
+    margin-right: 4px;
+  }
+  .thumb {
+    flex-shrink: 0;
+    width: 88px; height: 116px;
+    border-radius: 6px;
+    background: #fff;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform .12s, border-color .12s, box-shadow .12s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .thumb:hover { transform: translateY(-2px); border-color: rgba(0,153,153,0.5); }
+  .thumb.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0,153,153,0.4), 0 4px 14px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
+  }
+  .thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+  .thumb-index {
+    position: absolute;
+    top: 4px; left: 4px;
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Roboto', sans-serif;
+    display: grid; place-items: center;
+  }
+  .thumb.active .thumb-index {
+    background: var(--primary);
+  }
+  .thumb-status {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 3px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    color: #fff;
+    letter-spacing: 0.3px;
+  }
+  .thumb-status.pending   { background: rgba(0,0,0,0.7); }
+  .thumb-status.confirmed { background: var(--success); }
+  .thumb-status.skipped   { background: var(--text-lightest); }
+  .thumb-status.review    { background: var(--warning); }
+  .thumb-status-icon {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .thumb-status-icon.confirmed { background: var(--success); }
+  .thumb-status-icon.skipped   { background: var(--text-lightest); }
+  .thumb-status-icon.review    { background: var(--warning); }
+
+  .preview-stage {
+    flex: 1; min-height: 0;
+    display: grid; place-items: center;
+    overflow: hidden;
+    padding: 24px;
+    position: relative;
+  }
+  .preview-doc {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    transform-origin: center;
+    transition: transform .2s;
+    max-width: 95%;
+    max-height: 95%;
+    position: relative;
+  }
+  .preview-doc img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 760px;
+    object-fit: contain;
+  }
+  /* OCR-detected highlight boxes overlaid on the document */
+  .ocr-highlight {
+    position: absolute;
+    border: 2px solid var(--primary);
+    background: rgba(0, 153, 153, 0.14);
+    border-radius: 3px;
+    pointer-events: none;
+    animation: pulseHighlight 2.2s ease-in-out infinite;
+  }
+  .ocr-highlight::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -20px; left: -2px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  @keyframes pulseHighlight {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 153, 153, 0.45); }
+    50%      { box-shadow: 0 0 0 8px rgba(0, 153, 153, 0); }
+  }
+
+  .review-right {
+    width: 35%;
+    background: #fff;
+    display: flex; flex-direction: column;
+    min-width: 0;
+  }
+  .step-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .step-tab {
+    flex: 1;
+    padding: 14px 8px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-light);
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all .15s;
+    position: relative;
+  }
+  .step-tab .step-num {
+    display: inline-grid; place-items: center;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #e6e8e9;
+    color: var(--text-light);
+    font-weight: 700;
+    font-size: 11px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .step-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+  .step-tab.active .step-num { background: var(--primary); color: #fff; }
+  .step-tab.done .step-num { background: var(--success); color: #fff; }
+  .step-tab.done .step-num::before { content: "✓"; font-size: 11px; }
+  .step-tab.done .step-num span { display: none; }
+
+  .step-content {
+    flex: 1; overflow-y: auto;
+    padding: 20px;
+  }
+  .step-h {
+    font-size: 16px; font-weight: 700; color: var(--text-mid);
+    margin-bottom: 12px;
+  }
+  .step-help {
+    font-size: 12px; color: var(--text-light);
+    background: #f8fafa;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    display: flex; gap: 8px;
+  }
+  .step-help .help-icon { color: var(--primary); flex-shrink: 0; }
+
+  .ocr-banner {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    border: 1px solid;
+  }
+  .ocr-banner.high { background: var(--success-bg); border-color: #b7d9c4; color: var(--success); }
+  .ocr-banner.mid { background: var(--warning-bg); border-color: #f0d4a8; color: var(--warning); }
+  .ocr-banner.low { background: var(--danger-bg); border-color: #e7baba; color: var(--danger); }
+  .ocr-banner .conf-icon { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+  .ocr-banner b { color: inherit; }
+
+  .vehicle-search {
+    margin-bottom: 12px;
+  }
+  .vehicle-list {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .vehicle-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+    background: #fff;
+  }
+  .vehicle-card:hover { border-color: var(--primary); background: var(--primary-bg); }
+  .vehicle-card.suggested {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .vehicle-card.suggested::before {
+    content: "OCRマッチ候補";
+    display: inline-block;
+    font-size: 10px; font-weight: 700;
+    background: var(--primary); color: #fff;
+    padding: 2px 8px; border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .vehicle-card.selected {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+    box-shadow: 0 0 0 3px var(--primary-shadow);
+  }
+  .vc-row { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 4px; }
+  .vc-row:last-child { margin-bottom: 0; }
+  .vc-label {
+    display: inline-block;
+    min-width: 56px;
+    padding: 1px 6px;
+    background: #eef2f2;
+    color: var(--text-light);
+    font-size: 10px;
+    border-radius: 3px;
+    text-align: center;
+  }
+  .vc-value { color: var(--text-dark); font-weight: 500; }
+  .vc-value.plate { font-family: 'Roboto', sans-serif; }
+
+  .insp-list { display: flex; flex-direction: column; gap: 8px; }
+  .insp-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    transition: all .12s;
+  }
+  .insp-card:hover { border-color: var(--primary); }
+  .insp-card.selected { border-color: var(--primary); background: var(--primary-bg); box-shadow: 0 0 0 3px var(--primary-shadow); }
+  .insp-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .insp-kind { font-weight: 700; font-size: 13px; color: var(--text-dark); }
+  .insp-date { font-size: 11px; color: var(--text-light); }
+
+  .field-block { margin-bottom: 16px; }
+  .field-block label { display: block; font-size: 12px; color: var(--text-mid); font-weight: 500; margin-bottom: 6px; }
+  .field-block label .req { color: var(--danger); margin-left: 2px; }
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .check-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .12s;
+  }
+  .check-pill:hover { border-color: var(--primary); }
+  .check-pill input { accent-color: var(--primary); }
+  .check-pill input:checked + span { color: var(--primary); font-weight: 700; }
+
+  /* ========== SUMMARY MODAL ========== */
+  .summary-modal { width: 640px; max-width: 100%; }
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin: 16px 0 8px;
+  }
+  .summary-tile {
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .summary-tile.success { background: var(--success-bg); color: var(--success); }
+  .summary-tile.warn { background: var(--warning-bg); color: var(--warning); }
+  .summary-tile.danger { background: var(--danger-bg); color: var(--danger); }
+  .summary-tile .big { font-size: 32px; font-weight: 700; font-family: 'Roboto', sans-serif; line-height: 1; }
+  .summary-tile .lbl { font-size: 12px; margin-top: 6px; font-weight: 500; }
+
+  /* ========== TOAST ========== */
+  .toast-wrap {
+    position: fixed; bottom: 24px; right: 24px;
+    z-index: 200;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .toast {
+    background: var(--text-dark);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex; gap: 10px; align-items: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    animation: slideUp .2s ease-out;
+  }
+  .toast.success { background: var(--success); }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 1024px) {
+    .filter-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .filter-grid { grid-template-columns: 1fr; }
+    .review-body { flex-direction: column; }
+    .review-left, .review-right { width: 100%; }
+    .review-left { height: 40%; }
+    .preview-doc { width: 80%; }
+    .review-modal { width: 100%; height: 100%; max-height: none; border-radius: 0; }
+    .page-head { flex-direction: column; gap: 12px; align-items: stretch; }
+    .page-head .actions { justify-content: flex-end; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="logo">Logi<span>poke</span></div>
+    <nav>
+      <div class="nav-section">運行管理</div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        ダッシュボード
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2"/></svg>
+        ドライバー
+      </div>
+      <div class="nav-section">車両管理</div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="15" height="13" rx="2"/><path d="M16 9h4l3 4v6h-7z"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>
+        車両一覧
+      </div>
+      <div class="nav-item active">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        車両点検・事故管理
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        整備記録
+      </div>
+      <div class="nav-section">マスタ</div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        設定
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="header">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input placeholder="車両、ドライバー、点検記録を検索…">
+      </div>
+      <div class="user">
+        <span>POカンパニー</span>
+        <div class="avatar">PO</div>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <div class="breadcrumb">車両点検・事故管理 <span>/ 定期点検整備計画</span></div>
+      <div class="page-head">
+        <h1>定期点検整備計画 <span style="font-size:14px;color:var(--primary);font-weight:500;padding:3px 8px;background:var(--primary-bg);border-radius:4px;margin-left:6px;vertical-align:middle;">β版</span></h1>
+        <div class="actions">
+          <button class="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            PDF出力
+          </button>
+          <button class="btn btn-primary" onclick="openIntroModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            点検一括更新
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTER -->
+      <div class="card filter-card">
+        <div class="filter-head">
+          <div class="filter-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            検索フィルター
+          </div>
+        </div>
+        <div class="filter-grid">
+          <div class="form-group">
+            <label>営業所</label>
+            <select class="form-control"><option>東京第一営業所</option><option>東京第二営業所</option><option>横浜営業所</option></select>
+          </div>
+          <div class="form-group">
+            <label>車種</label>
+            <select class="form-control"><option>すべて</option><option>10tウィング車</option><option>4t冷蔵車</option></select>
+          </div>
+          <div class="form-group">
+            <label>点検種別</label>
+            <select class="form-control"><option>すべて</option><option>3ヶ月点検</option><option>車検</option></select>
+          </div>
+          <div class="form-group">
+            <label>表示期間</label>
+            <select class="form-control"><option>30日</option><option>12ヶ月</option></select>
+          </div>
+          <div class="form-group" style="grid-column: span 2;">
+            <label>ステータス</label>
+            <div style="display:flex;gap:14px;padding-top:8px;">
+              <label class="intro-check" style="margin:0;"><input type="checkbox" checked> <span>予定</span></label>
+              <label class="intro-check" style="margin:0;"><input type="checkbox" checked> <span>実施済み</span></label>
+              <label class="intro-check" style="margin:0;"><input type="checkbox"> <span>期限切れ</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="filter-footer">
+          <button class="btn btn-primary">検索</button>
+          <button class="btn btn-secondary">クリア</button>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="card table-card">
+        <div class="table-wrap">
+          <table class="inspection-table">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th style="width:140px;">ナンバー</th>
+                <th style="width:120px;">車種</th>
+                <th style="width:130px;">営業所</th>
+                <th style="width:70px;">予実</th>
+                <th class="month-cell">3月</th>
+                <th class="month-cell">4月</th>
+                <th class="month-cell">5月</th>
+                <th class="month-cell">6月</th>
+                <th class="month-cell">7月</th>
+                <th class="month-cell">8月</th>
+                <th class="month-cell">9月</th>
+                <th class="month-cell">10月</th>
+              </tr>
+            </thead>
+            <tbody id="inspection-tbody">
+              <!-- rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;font-size:12px;color:var(--text-light);">
+        更新履歴：POカンパニー システム管理者 / 2026年02月28日 16時33分25秒
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- INTRO MODAL                                    -->
+<!-- ============================================== -->
+<div class="overlay" id="overlay-intro">
+  <div class="modal intro-modal">
+    <div class="modal-title">
+      <h2>ファイルから一括更新</h2>
+      <button class="modal-close" onclick="closeAllModals()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="intro-body">
+      <div class="intro-illust">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <div class="intro-text">
+        点検記録簿の PDF・JPG をアップロードして、<br>
+        点検をそれに紐付けます（最大10件）
+      </div>
+      <label class="intro-check">
+        <input type="checkbox"> この説明を二度と表示しない
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeAllModals()">キャンセル</button>
+      <button class="btn btn-primary" onclick="goToUpload()">次へ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- UPLOAD MODAL                                   -->
+<!-- ============================================== -->
+<div class="overlay" id="overlay-upload">
+  <div class="modal upload-modal">
+    <div class="modal-title">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="modal-close" onclick="backToIntro()" title="戻る">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2>点検記録簿をアップロード</h2>
+      </div>
+      <button class="modal-close" onclick="closeAllModals()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="dropzone">
+        <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div class="dz-title">PDF・JPG をここにドロップ</div>
+        <div class="dz-sub">または、クリックしてファイルを選択（最大10件、1ファイル20MBまで）</div>
+        <div class="dz-btn">ファイルを選択</div>
+        <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none;">
+      </div>
+      <div style="margin-top:12px;display:flex;justify-content:center;">
+        <button class="btn btn-ghost" style="font-size:12px;color:var(--primary);" onclick="loadSampleFiles()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          デモ用サンプル6件を読み込む
+        </button>
+      </div>
+      <div class="file-list" id="file-list"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="backToIntro()">戻る</button>
+      <div class="foot-right">
+        <span id="file-count" style="align-self:center;font-size:13px;color:var(--text-light);margin-right:8px;"></span>
+        <button class="btn btn-primary" id="btn-start-ocr" disabled onclick="startOcrProcessing()">OCRを開始（0件）</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- REVIEW (MAIN) MODAL                            -->
+<!-- ============================================== -->
+<div class="overlay" id="overlay-review">
+  <div class="modal review-modal">
+    <div class="modal-title">
+      <div style="display:flex;align-items:center;">
+        <h2>点検を更新する</h2>
+        <span class="step-counter" id="record-counter">（1 / 10）</span>
+      </div>
+      <button class="modal-close" onclick="confirmCloseReview()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="review-body">
+      <!-- LEFT: preview -->
+      <div class="review-left">
+        <div class="preview-toolbar">
+          <div class="tools">
+            <button class="tool-btn" title="再読込" onclick="reloadPreview()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+            </button>
+            <button class="tool-btn" title="削除" onclick="deleteCurrentRecord()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1.5 14a2 2 0 01-2 1.85h-7a2 2 0 01-2-1.85L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+            <span style="width:1px;background:rgba(255,255,255,0.12);margin:8px 4px;"></span>
+            <button class="tool-btn" title="拡大" onclick="zoomPreview(1)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <button class="tool-btn" title="縮小" onclick="zoomPreview(-1)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+          </div>
+          <div class="preview-pager">
+            <button class="pager-btn" id="pager-prev" onclick="prevRecord()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              前の記録簿
+            </button>
+            <div class="pager-current">
+              <span class="now" id="pager-now">1</span>
+              <span class="sep">/</span>
+              <span class="total" id="pager-total">10</span>
+            </div>
+            <button class="pager-btn" id="pager-next" onclick="nextRecord()">
+              次の記録簿
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="preview-stage">
+          <div class="preview-doc" id="preview-doc">
+            <!-- rendered by JS -->
+          </div>
+        </div>
+        <div class="thumb-strip" id="thumb-strip">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+      <!-- RIGHT: 3-step panel -->
+      <div class="review-right">
+        <div class="step-tabs" id="step-tabs">
+          <div class="step-tab active" data-step="1" onclick="goStep(1)"><span class="step-num"><span>1</span></span>車両</div>
+          <div class="step-tab" data-step="2" onclick="goStep(2)"><span class="step-num"><span>2</span></span>実施予定</div>
+          <div class="step-tab" data-step="3" onclick="goStep(3)"><span class="step-num"><span>3</span></span>実施内容</div>
+        </div>
+        <div class="step-content" id="step-content">
+          <!-- rendered by JS -->
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-secondary" id="btn-step-back" onclick="stepBack()">戻る</button>
+          <div class="foot-right">
+            <button class="btn btn-ghost" onclick="skipRecord()">スキップ</button>
+            <button class="btn btn-tentative" id="btn-tentative" onclick="markTentative()" style="display:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              仮確定
+            </button>
+            <button class="btn btn-primary" id="btn-step-next" onclick="stepNext()">次へ</button>
+            <div class="split-btn" id="confirm-split" style="display:none;">
+              <button class="split-main" onclick="confirmRecord()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="confirm-main-label">この記録簿を確定</span>
+              </button>
+              <button class="split-toggle" onclick="toggleConfirmMenu(event)" aria-label="その他の確定オプション">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="split-menu" id="confirm-menu">
+                <button class="split-menu-item" onclick="confirmRecord(); closeConfirmMenu();">
+                  <div class="item-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div class="item-text">
+                    <strong>この記録簿のみ確定</strong>
+                    <small>表示中の1件だけを確定し、次の記録簿へ進みます</small>
+                  </div>
+                </button>
+                <div class="split-menu-divider"></div>
+                <button class="split-menu-item" onclick="confirmAllRemaining(); closeConfirmMenu();">
+                  <div class="item-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div class="item-text">
+                    <strong>残り <span id="remain-count">0</span> 件をまとめて確定</strong>
+                    <small>未確定の記録簿をOCR推定値のまま一括で確定します</small>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- SUMMARY MODAL                                  -->
+<!-- ============================================== -->
+<div class="overlay" id="overlay-summary">
+  <div class="modal summary-modal">
+    <div class="modal-title">
+      <h2>一括更新が完了しました</h2>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      <div style="font-size:14px;color:var(--text-light);" id="summary-headline">記録簿を処理しました</div>
+      <div class="summary-grid" id="summary-grid"></div>
+      <div style="font-size:12px;color:var(--text-light);margin-top:16px;">
+        要確認の記録簿は、後から個別に編集できます。
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeAllModals()">閉じる</button>
+      <button class="btn btn-primary" onclick="closeAllModals(); showToast('テーブルを更新しました', 'success');">一覧に戻る</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ==========================================================
+// IMAGE ASSETS (embedded base64)
+// ==========================================================
+const INSPECTION_RECORD_IMG = "data:image/jpeg;base64," +
+  "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZ" +
+  "WiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAA" +
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAA" +
+  "ACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAA" +
+  "AChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAA" +
+  "AAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAA" +
+  "AAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAA" +
+  "E9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBu" +
+  "AGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQa" +
+  "FRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4e" +
+  "Hh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAGDAhgDASIAAhEBAxEB/8QAHQAAAgID" +
+  "AQEBAAAAAAAAAAAAAAUEBgIDBwgBCf/EAFwQAAIBAwIDAwYJBQ4CCAQEBwECAwQFEQASBhMhFCIxB0FR" +
+  "VJHSFSMyUlNhkpPRM0JVVnEIFhckNDVDYnN0gaKxs5S0JThEY6HT1OEJcrLBZIKElaTwGHUmo8T/xAAV" +
+  "AQEBAAAAAAAAAAAAAAAAAAAAAf/EABURAQEAAAAAAAAAAAAAAAAAAAAR/9oADAMBAAIRAxEAPwD13NXK" +
+  "tRLDFbqmcxMFZo0XGSAcdSPMRrDt8vms1b9mP3tbrac1NwP/AOJH+1HqboFnb5f0NW/Zj97R2+X9DVv2" +
+  "Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TPRoFnb5f0NW/Zj97R" +
+  "2+X9DVv2Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TPRoFnb5f0" +
+  "NW/Zj97R2+X9DVv2Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TP" +
+  "RoFnb5f0NW/Zj97R2+X9DVv2Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0N" +
+  "W/Zj97TPRoFnb5f0NW/Zj97R2+X9DVv2Y/e0xkkSJC8jqijxZjgDWMM8E2eTNHJjx2MDj2aCB2+X9DVv" +
+  "2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TPRoFnb5f0NW/Zj97R2+X9DVv2Y/e0z0aB" +
+  "Z2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TPRoFnb5f0NW/Zj97R2+X9DVv2" +
+  "Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TPRoFnb5f0NW/Zj97R" +
+  "2+X9DVv2Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TPRoFnb5f0" +
+  "NW/Zj97R2+X9DVv2Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0NW/Zj97TP" +
+  "RoFnb5f0NW/Zj97R2+X9DVv2Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9GgWdvl/Q1b9mP3tHb5f0N" +
+  "W/Zj97TPRoFnb5f0NW/Zj97R2+X9DVv2Y/e0z0aBZ2+X9DVv2Y/e0dvl/Q1b9mP3tM9Ggg0FdR1kMc0W" +
+  "3bIoYZGDgjOjXFfJZxZPWzrTM5Kodns6aNB2q1fl7h/eR/tpqdqDavy9w/vI/wBtNTtAa5R+6c8pt28m" +
+  "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" +
+  "nu6PhXyt/rRX/YT3dB26DgjbSUsE9z53Jr0rHY04zIFdmEfVjgEcsH/5PrG21W+Opho446ypWpnXO6VY" +
+  "9gbr07uTjpjXmf4V8rf60V/2E93R8K+Vv9aK/wCwnu6D05UK7U8ixnDlCFOcYOOmuaW7h/jeLsbXequF" +
+  "dBTQR0zwU11eKSZY1cLIz71zIWdS7ZG4IPHw1y74V8rf60V/2E93R8K+Vv8AWiv+wnu6Dt3BFt4pobrM" +
+  "9+qWqlMTh5ue5R23gx7ELkDCZDHanUefJOrjrzB8K+Vv9aK/7Ce7o+FfK3+tFf8Adp7ug9P6NeYPhXyt" +
+  "/rRX/dp7uvq3Xytbhniivx/Zp7ugh+RMH4Wk/tW/1OjVr8lHCdVbqhZJlOScknznRoO7VsaOh3KD+3Sa" +
+  "aipS3WBD/ho0aDDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6uns0dhpPV09mjRoDsNJ6u" +
+  "ns0ChpM/ydPZo0aCfQU8MZ7kar+waNGjQf/Z";
+
+// ==========================================================
+// DATA
+// ==========================================================
+const vehicles = [
+  { id: 'v1', plate: '足立 100 あ 1234', model: '10tウィング車', branch: '東京第一営業所' },
+  { id: 'v2', plate: '品川 456 さ 78-91', model: '10tウイング車', branch: '東京事業所' },
+  { id: 'v3', plate: '横浜 300 か 4567', model: '4t冷蔵車',     branch: '横浜営業所' },
+  { id: 'v4', plate: '足立 800 う 2345', model: '2tバン',        branch: '東京第一営業所' },
+  { id: 'v5', plate: '川崎 500 え 6789', model: '4tウィング車',  branch: '横浜営業所' },
+];
+const drivers = [
+  { id: 'd1', name: '田中 一郎' },
+  { id: 'd2', name: '佐藤 健二' },
+  { id: 'd3', name: '鈴木 三郎' },
+];
+const inspectionKinds = ['3ヶ月点検','12ヶ月点検','車検','日常点検'];
+
+// 一覧テーブルのモックデータ
+const tableRows = vehicles.slice(0, 4).map((v, i) => ({
+  ...v,
+  no: i + 1,
+  months: [
+    { plan: '3ヶ月点検', done: i < 2 },
+    { plan: '', done: false },
+    { plan: '車検', done: i === 0 },
+    { plan: '', done: false },
+    { plan: '3ヶ月点検', done: false },
+    { plan: '', done: false },
+    { plan: '12ヶ月点検', done: false },
+    { plan: '', done: false },
+  ],
+}));
+
+// アップロードされたファイル
+let uploadedFiles = [];
+let processingRecords = []; // OCR後の対象記録簿
+let currentIdx = 0;
+let currentStep = 1;
+let previewZoom = 1;
+
+// ==========================================================
+// TABLE
+// ==========================================================
+function renderTable() {
+  const tbody = document.getElementById('inspection-tbody');
+  tbody.innerHTML = tableRows.map(r => `
+    <tr class="row-vehicle">
+      <td class="cell-text">${r.no}</td>
+      <td class="cell-text" style="font-family:'Roboto',sans-serif;">${r.plate}</td>
+      <td class="cell-text">${r.model}</td>
+      <td class="cell-text">${r.branch}</td>
+      <td>
+        <div class="row-pair">
+          <div class="sub-row planned">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            予定
+          </div>
+          <div class="sub-row actual">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+            実績
+          </div>
+        </div>
+      </td>
+      ${r.months.map(m => `
+        <td>
+          <div class="row-pair">
+            <div class="sub-row planned" style="justify-content:center;">${m.plan ? `<span class="label-pill pill-plan">${m.plan}</span>` : '—'}</div>
+            <div class="sub-row actual" style="justify-content:center;">${m.done ? `<span class="label-pill pill-done">完了</span>` : '—'}</div>
+          </div>
+        </td>
+      `).join('')}
+    </tr>
+  `).join('');
+}
+renderTable();
+
+// ==========================================================
+// MODAL CONTROL
+// ==========================================================
+function openIntroModal() { document.getElementById('overlay-intro').classList.add('show'); }
+function backToIntro() {
+  document.getElementById('overlay-upload').classList.remove('show');
+  document.getElementById('overlay-intro').classList.add('show');
+}
+function closeAllModals() {
+  document.querySelectorAll('.overlay').forEach(o => o.classList.remove('show'));
+}
+function goToUpload() {
+  document.getElementById('overlay-intro').classList.remove('show');
+  document.getElementById('overlay-upload').classList.add('show');
+}
+
+// ==========================================================
+// UPLOAD
+// ==========================================================
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+
+dropzone.addEventListener('click', () => fileInput.click());
+['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); }));
+['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  const arr = Array.from(files);
+  for (const f of arr) {
+    if (uploadedFiles.length >= 10) {
+      showToast('最大10件までアップロードできます');
+      break;
+    }
+    if (f.size > 20 * 1024 * 1024) {
+      showToast(`${f.name} は20MBを超えています`);
+      continue;
+    }
+    uploadedFiles.push({
+      id: 'f' + Math.random().toString(36).slice(2),
+      name: f.name,
+      size: f.size,
+      type: f.name.split('.').pop().toUpperCase(),
+      progress: 0,
+      status: 'queued',
+    });
+  }
+  renderFileList();
+  // 擬似アップロード
+  uploadedFiles.forEach(f => {
+    if (f.status === 'queued') {
+      f.status = 'uploading';
+      simulateUpload(f);
+    }
+  });
+}
+
+function simulateUpload(f) {
+  const tick = () => {
+    f.progress += 15 + Math.random() * 20;
+    if (f.progress >= 100) {
+      f.progress = 100;
+      f.status = 'done';
+      renderFileList();
+      return;
+    }
+    renderFileList();
+    setTimeout(tick, 150);
+  };
+  setTimeout(tick, 200);
+}
+
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  list.innerHTML = uploadedFiles.map(f => `
+    <div class="file-row">
+      <div class="file-icon">${f.type}</div>
+      <div class="file-meta">
+        <div class="file-name">${f.name}</div>
+        <div class="file-size">${formatSize(f.size)}</div>
+        ${f.status !== 'done' ? `<div class="progress-bar"><div style="width:${f.progress}%;"></div></div>` : ''}
+      </div>
+      ${f.status === 'done' ? `<span class="file-status" style="background:var(--success-bg);color:var(--success);">準備完了</span>` : `<span class="file-status" style="background:#eee;color:var(--text-light);">アップロード中</span>`}
+      <button class="file-remove" onclick="removeFile('${f.id}')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join('');
+  document.getElementById('file-count').textContent = `${uploadedFiles.length} / 10 件`;
+  const btn = document.getElementById('btn-start-ocr');
+  const allDone = uploadedFiles.length > 0 && uploadedFiles.every(f => f.status === 'done');
+  btn.disabled = !allDone;
+  btn.textContent = `OCRを開始（${uploadedFiles.length}件）`;
+}
+
+function removeFile(id) {
+  uploadedFiles = uploadedFiles.filter(f => f.id !== id);
+  renderFileList();
+}
+
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+
+// デモ用：実際の点検整備記録簿風のサンプルファイルを6件投入
+function loadSampleFiles() {
+  uploadedFiles = [
+    { id: 'sf1', name: '点検整備記録簿_足立100あ1234_20260315.pdf', size: 245678, type: 'PDF', progress: 100, status: 'done' },
+    { id: 'sf2', name: '点検整備記録簿_品川456さ7891_20260318.jpg', size: 1842320, type: 'JPG', progress: 100, status: 'done' },
+    { id: 'sf3', name: 'IMG_2026_03_20.jpg',                          size: 2105648, type: 'JPG', progress: 100, status: 'done' },
+    { id: 'sf4', name: '点検整備記録簿_横浜300か4567.pdf',            size: 312456, type: 'PDF', progress: 100, status: 'done' },
+    { id: 'sf5', name: 'scan_20260322_001.pdf',                       size: 287104, type: 'PDF', progress: 100, status: 'done' },
+    { id: 'sf6', name: '点検整備記録簿_川崎500え6789_20260325.jpg',   size: 1958472, type: 'JPG', progress: 100, status: 'done' },
+  ];
+  renderFileList();
+  showToast('サンプル6件を読み込みました', 'success');
+}
+
+// ==========================================================
+// OCR (mock) + Build review records
+// ==========================================================
+function startOcrProcessing() {
+  // OCRをモック：ファイル名から信頼度を推定
+  processingRecords = uploadedFiles.map((f, i) => {
+    // ファイル名がスマホ撮影風（IMG_やscan_）だと信頼度が下がる挙動を再現
+    let conf;
+    if (f.name.startsWith('IMG_')) conf = 0.38 + Math.random() * 0.12;
+    else if (f.name.startsWith('scan_')) conf = 0.58 + Math.random() * 0.15;
+    else conf = 0.88 + Math.random() * 0.08;
+
+    // ファイル名にナンバーが含まれていればマッチ車両を推定
+    const matchedVehicle = vehicles.find(v =>
+      f.name.includes(v.plate.replace(/[ -]/g, '').replace(/[あ-ん]/g, '')) ||
+      v.plate.split(' ').some(part => f.name.includes(part))
+    );
+    const vIdx = matchedVehicle ? vehicles.indexOf(matchedVehicle) : (i % vehicles.length);
+
+    return {
+      fileId: f.id,
+      fileName: f.name,
+      ocrConfidence: conf,
+      ocrVehicleId: vehicles[vIdx].id,
+      ocrInspectionKind: inspectionKinds[i % inspectionKinds.length],
+      ocrScheduledOn: shiftDate(-3 - i),
+      ocrPerformedOn: shiftDate(-1 - i),
+      ocrDriverId: drivers[i % drivers.length].id,
+      ocrMileage: 78420 + i * 1500,
+      ocrInspectorName: '佐藤 整備士',
+      vehicleId: conf > 0.7 ? vehicles[vIdx].id : null,
+      scheduledOn: shiftDate(-3 - i),
+      performedOn: shiftDate(-1 - i),
+      inspectionKind: inspectionKinds[i % inspectionKinds.length],
+      driverId: drivers[i % drivers.length].id,
+      mileage: 78420 + i * 1500,
+      checks: { regular: true, threeMonth: i % 2 === 0, vehicleInsp: i === 0 },
+      status: 'pending',
+    };
+  });
+
+  showToast(`${uploadedFiles.length}件のOCRを実行中…`);
+  setTimeout(() => {
+    document.getElementById('overlay-upload').classList.remove('show');
+    currentIdx = 0;
+    currentStep = 1;
+    openReview();
+  }, 900);
+}
+
+function shiftDate(days) {
+  const d = new Date(); d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// ==========================================================
+// REVIEW MODAL
+// ==========================================================
+function openReview() {
+  document.getElementById('overlay-review').classList.add('show');
+  renderReview();
+}
+
+function renderReview() {
+  const total = processingRecords.length;
+  document.getElementById('record-counter').textContent = `（${currentIdx + 1} / ${total}）`;
+  document.getElementById('pager-now').textContent = currentIdx + 1;
+  document.getElementById('pager-total').textContent = total;
+  document.getElementById('pager-prev').disabled = currentIdx === 0;
+  document.getElementById('pager-next').disabled = currentIdx === total - 1;
+  renderPreview();
+  renderThumbStrip();
+  updateStepTabs();
+  renderStepContent();
+}
+
+function renderThumbStrip() {
+  const strip = document.getElementById('thumb-strip');
+  if (!strip) return;
+  const total = processingRecords.length;
+
+  const statusLabel = (s) => {
+    if (s === 'confirmed') return { cls: 'confirmed', text: '確定済' };
+    if (s === 'tentative') return { cls: 'tentative', text: '仮確定' };
+    if (s === 'skipped')   return { cls: 'skipped',   text: 'スキップ' };
+    return { cls: 'pending', text: '未確定' };
+  };
+  const statusIcon = (s) => {
+    if (s === 'confirmed') return `<div class="thumb-status-icon confirmed"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+    if (s === 'tentative') return `<div class="thumb-status-icon tentative"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>`;
+    if (s === 'skipped')   return `<div class="thumb-status-icon skipped"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>`;
+    return '';
+  };
+
+  strip.innerHTML = `
+    <div class="thumb-strip-label">記録簿</div>
+    ${processingRecords.map((r, i) => {
+      const st = statusLabel(r.status);
+      const reqsReview = r.ocrConfidence < 0.5 && r.status === 'pending';
+      const finalCls = reqsReview ? 'review' : st.cls;
+      const finalText = reqsReview ? '要確認' : st.text;
+      return `
+        <div class="thumb ${i === currentIdx ? 'active' : ''}"
+             onclick="jumpToRecord(${i})"
+             title="${i + 1}件目：${r.fileName}">
+          <img src="${INSPECTION_RECORD_IMG}" alt="記録簿 ${i + 1}">
+          <div class="thumb-index">${i + 1}</div>
+          ${statusIcon(r.status)}
+          ${reqsReview && r.status === 'pending' ? `<div class="thumb-status-icon review"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>` : ''}
+          <div class="thumb-status ${finalCls}">${finalText}</div>
+        </div>
+      `;
+    }).join('')}
+  `;
+
+  // 現在のサムネイルが見える位置に自動スクロール
+  const active = strip.querySelector('.thumb.active');
+  if (active) {
+    const stripRect = strip.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    if (activeRect.left < stripRect.left || activeRect.right > stripRect.right) {
+      active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
+}
+
+function jumpToRecord(i) {
+  if (i === currentIdx) return;
+  currentIdx = i;
+  currentStep = 1;
+  renderReview();
+}
+
+function renderPreview() {
+  const r = processingRecords[currentIdx];
+  // OCRが検出した領域（記録簿画像の座標%でハイライト）
+  // 画像は 536x387 の点検整備記録簿
+  const highlights = [
+    { label: '車種・型式',     top: '6%',  left: '52%', w: '15%', h: '4.5%' },
+    { label: '登録番号',       top: '11%', left: '52%', w: '15%', h: '4%' },
+    { label: '点検実施日',     top: '6%',  left: '69%', w: '18%', h: '5%' },
+    { label: '走行距離',       top: '11%', left: '69%', w: '18%', h: '5%' },
+    { label: '整備実施者署名', top: '88%', left: '69%', w: '20%', h: '7%' },
+  ];
+  // 状態に応じた斜めスタンプ
+  let stampHtml = '';
+  if (r.status === 'confirmed')      stampHtml = `<div class="preview-stamp confirmed">確定済</div>`;
+  else if (r.status === 'tentative') stampHtml = `<div class="preview-stamp tentative">仮確定</div>`;
+  else if (r.status === 'skipped')   stampHtml = `<div class="preview-stamp skipped">スキップ</div>`;
+
+  document.getElementById('preview-doc').innerHTML = `
+    <img src="${INSPECTION_RECORD_IMG}" alt="点検整備記録簿">
+    ${highlights.map(h => `
+      <div class="ocr-highlight" data-label="${h.label}"
+           style="top:${h.top};left:${h.left};width:${h.w};height:${h.h};"></div>
+    `).join('')}
+    ${stampHtml}
+  `;
+  document.getElementById('preview-doc').style.transform = `scale(${previewZoom})`;
+}
+
+function zoomPreview(dir) {
+  previewZoom = Math.max(0.6, Math.min(2, previewZoom + dir * 0.15));
+  document.getElementById('preview-doc').style.transform = `scale(${previewZoom})`;
+}
+function reloadPreview() { previewZoom = 1; renderPreview(); showToast('プレビューを再読込しました'); }
+function deleteCurrentRecord() {
+  if (!confirm('この記録簿の処理を取り消しますか？')) return;
+  processingRecords[currentIdx].status = 'skipped';
+  goNextOrFinish();
+}
+function skipRecord() {
+  processingRecords[currentIdx].status = 'skipped';
+  goNextOrFinish();
+}
+function prevRecord() { if (currentIdx > 0) { currentIdx--; currentStep = 1; renderReview(); } }
+function nextRecord() { if (currentIdx < processingRecords.length - 1) { currentIdx++; currentStep = 1; renderReview(); } }
+
+function updateStepTabs() {
+  document.querySelectorAll('.step-tab').forEach(el => {
+    const s = parseInt(el.dataset.step);
+    el.classList.remove('active','done');
+    if (s < currentStep) el.classList.add('done');
+    if (s === currentStep) el.classList.add('active');
+  });
+  document.getElementById('btn-step-back').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+  updateFooterButtons();
+}
+
+// フッターの「次へ」「仮確定」「確定スプリット」ボタンの表示を切り替える
+function updateFooterButtons() {
+  const onLastStep = currentStep === 3;
+  const btnNext = document.getElementById('btn-step-next');
+  const btnTent = document.getElementById('btn-tentative');
+  const splitBox = document.getElementById('confirm-split');
+
+  if (onLastStep) {
+    // 最終ステップ：次へボタンを隠し、仮確定＋確定スプリットを表示
+    btnNext.style.display = 'none';
+    btnTent.style.display = 'inline-flex';
+    splitBox.style.display = 'inline-flex';
+
+    // 残り未確定（pending / tentative）件数を算出
+    const remain = processingRecords.filter(
+      (r, i) => i !== currentIdx && (r.status === 'pending' || r.status === 'tentative')
+    ).length + 1; // 現在の1件を含む
+    document.getElementById('remain-count').textContent = remain;
+
+    // 現在の記録簿が仮確定なら「仮確定を解除」表示に
+    const r = processingRecords[currentIdx];
+    btnTent.innerHTML = r.status === 'tentative'
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 仮確定を解除`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 仮確定`;
+  } else {
+    // ステップ1,2：次へを表示、他は隠す
+    btnNext.style.display = 'inline-flex';
+    btnNext.textContent = '次へ';
+    btnTent.style.display = 'none';
+    splitBox.style.display = 'none';
+    closeConfirmMenu();
+  }
+}
+
+function goStep(s) { currentStep = s; updateStepTabs(); renderStepContent(); }
+function stepBack() { if (currentStep > 1) { currentStep--; updateStepTabs(); renderStepContent(); } }
+function stepNext() {
+  if (currentStep < 3) {
+    currentStep++;
+    updateStepTabs();
+    renderStepContent();
+  }
+  // ステップ3では「次へ」ボタンは表示されない（confirmRecord か markTentative を使う）
+}
+
+// === 確定アクション ===
+function confirmRecord() {
+  processingRecords[currentIdx].status = 'confirmed';
+  showToast(`${currentIdx + 1}件目を確定しました`, 'success');
+  goNextOrFinish();
+}
+
+// 残りの pending / tentative をすべて確定
+function confirmAllRemaining() {
+  let count = 0;
+  processingRecords.forEach(r => {
+    if (r.status === 'pending' || r.status === 'tentative') {
+      r.status = 'confirmed';
+      count++;
+    }
+  });
+  showToast(`${count}件をまとめて確定しました`, 'success');
+  finishAll();
+}
+
+// 仮確定 / 仮確定解除
+function markTentative() {
+  const r = processingRecords[currentIdx];
+  if (r.status === 'tentative') {
+    r.status = 'pending';
+    showToast(`${currentIdx + 1}件目の仮確定を解除しました`);
+  } else {
+    r.status = 'tentative';
+    showToast(`${currentIdx + 1}件目を仮確定にしました`);
+    // 自動で次の未確定（pending / tentative以外でない）の記録簿へ進む
+    setTimeout(() => {
+      const nextIdx = findNextPending();
+      if (nextIdx >= 0) {
+        currentIdx = nextIdx;
+        currentStep = 1;
+        renderReview();
+      } else {
+        renderReview();
+      }
+    }, 350);
+    return;
+  }
+  renderReview();
+}
+
+function findNextPending() {
+  for (let i = currentIdx + 1; i < processingRecords.length; i++) {
+    if (processingRecords[i].status === 'pending') return i;
+  }
+  // 最後まで行ったら先頭からpendingを探す
+  for (let i = 0; i < currentIdx; i++) {
+    if (processingRecords[i].status === 'pending') return i;
+  }
+  return -1;
+}
+
+// === 確定スプリットメニュー ===
+function toggleConfirmMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('confirm-menu');
+  menu.classList.toggle('show');
+}
+function closeConfirmMenu() {
+  const menu = document.getElementById('confirm-menu');
+  if (menu) menu.classList.remove('show');
+}
+document.addEventListener('click', e => {
+  const split = document.getElementById('confirm-split');
+  if (split && !split.contains(e.target)) closeConfirmMenu();
+});
+
+function goNextOrFinish() {
+  // 未確定（pending）の記録簿がまだあれば次へ、なければ全件処理済み画面へ
+  const nextPending = findNextPending();
+  if (nextPending >= 0) {
+    currentIdx = nextPending;
+    currentStep = 1;
+    renderReview();
+  } else if (processingRecords.some(r => r.status === 'tentative')) {
+    // 仮確定が残っているなら、その最初のものへ
+    const firstTent = processingRecords.findIndex(r => r.status === 'tentative');
+    if (firstTent >= 0) {
+      currentIdx = firstTent;
+      currentStep = 1;
+      renderReview();
+      showToast('仮確定の記録簿が残っています');
+    } else {
+      finishAll();
+    }
+  } else {
+    finishAll();
+  }
+}
+
+function confirmCloseReview() {
+  if (confirm('保存していない変更があります。閉じてもよろしいですか？')) {
+    closeAllModals();
+  }
+}
+
+// ==========================================================
+// STEP CONTENT
+// ==========================================================
+function renderStepContent() {
+  const r = processingRecords[currentIdx];
+  const el = document.getElementById('step-content');
+  if (currentStep === 1) {
+    el.innerHTML = renderStep1(r);
+  } else if (currentStep === 2) {
+    el.innerHTML = renderStep2(r);
+  } else {
+    el.innerHTML = renderStep3(r);
+  }
+}
+
+function confidenceBanner(conf, ocrVehicleId) {
+  const v = vehicles.find(x => x.id === ocrVehicleId);
+  if (conf >= 0.7) return `
+    <div class="ocr-banner high">
+      <svg class="conf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <div><b>高い信頼度でマッチしました</b>（${(conf*100).toFixed(0)}%）<br>
+      候補：${v.plate} ／ ${v.model} ／ ${v.branch}</div>
+    </div>`;
+  if (conf >= 0.5) return `
+    <div class="ocr-banner mid">
+      <svg class="conf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div><b>マッチ候補がありますが要確認です</b>（${(conf*100).toFixed(0)}%）<br>
+      候補：${v.plate}。正しい車両を選択してください。</div>
+    </div>`;
+  return `
+    <div class="ocr-banner low">
+      <svg class="conf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <div><b>自動マッチに失敗しました</b>（${(conf*100).toFixed(0)}%）<br>
+      手動で車両を選択してください。</div>
+    </div>`;
+}
+
+function renderStep1(r) {
+  return `
+    <div class="step-h">① 車両を選択</div>
+    ${confidenceBanner(r.ocrConfidence, r.ocrVehicleId)}
+    <div class="vehicle-search">
+      <input type="text" class="form-control" placeholder="ナンバー・車種・営業所で絞り込む" oninput="filterVehicles(this.value)">
+    </div>
+    <div class="vehicle-list" id="vehicle-list">
+      ${vehicleListHtml(r)}
+    </div>
+  `;
+}
+
+function vehicleListHtml(r, query = '') {
+  const q = (query || '').toLowerCase();
+  // OCR候補を先頭に
+  const ordered = [
+    vehicles.find(v => v.id === r.ocrVehicleId),
+    ...vehicles.filter(v => v.id !== r.ocrVehicleId)
+  ].filter(Boolean);
+  return ordered
+    .filter(v => !q || (v.plate + v.model + v.branch).toLowerCase().includes(q))
+    .map(v => `
+      <div class="vehicle-card ${v.id === r.ocrVehicleId ? 'suggested' : ''} ${v.id === r.vehicleId ? 'selected' : ''}" onclick="selectVehicle('${v.id}')">
+        <div class="vc-row"><span class="vc-label">ナンバー</span><span class="vc-value plate">${v.plate}</span></div>
+        <div class="vc-row"><span class="vc-label">車種</span><span class="vc-value">${v.model}</span></div>
+        <div class="vc-row"><span class="vc-label">営業所</span><span class="vc-value">${v.branch}</span></div>
+      </div>
+    `).join('');
+}
+
+function filterVehicles(q) {
+  const r = processingRecords[currentIdx];
+  document.getElementById('vehicle-list').innerHTML = vehicleListHtml(r, q);
+}
+
+function selectVehicle(id) {
+  processingRecords[currentIdx].vehicleId = id;
+  renderStepContent();
+  // 自動で次へ
+  setTimeout(() => { if (currentStep === 1) { currentStep = 2; updateStepTabs(); renderStepContent(); } }, 200);
+}
+
+function renderStep2(r) {
+  const v = vehicles.find(x => x.id === r.vehicleId) || vehicles.find(x => x.id === r.ocrVehicleId);
+  // 仮想的な点検予定リスト
+  const plans = [
+    { id: 'p1', kind: '3ヶ月点検', date: r.ocrScheduledOn },
+    { id: 'p2', kind: '12ヶ月点検', date: shiftDate(60) },
+    { id: 'p3', kind: '車検', date: shiftDate(120) },
+  ];
+  const ocrMatch = plans.find(p => p.kind === r.ocrInspectionKind) || plans[0];
+  return `
+    <div class="step-h">② 実施予定日を選択（1/2）</div>
+    <div class="step-help">
+      <svg class="help-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      ${v ? `${v.plate}` : ''} の未完了の点検予定です。OCR で推定された予定と一致するものを選択してください。
+    </div>
+    <div class="insp-list">
+      ${plans.map(p => `
+        <div class="insp-card ${p.kind === r.inspectionKind ? 'selected' : ''} ${p.id === ocrMatch.id ? 'suggested-insp' : ''}" onclick="selectInspection('${p.kind}')">
+          <div class="insp-info">
+            <div class="insp-kind">${p.kind}</div>
+            <div class="insp-date">予定日：${p.date}</div>
+          </div>
+          ${p.id === ocrMatch.id ? `<span class="label-pill pill-done" style="background:var(--primary-bg);color:var(--primary);">OCR推定</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+function selectInspection(kind) {
+  processingRecords[currentIdx].inspectionKind = kind;
+  renderStepContent();
+  setTimeout(() => { if (currentStep === 2) { currentStep = 3; updateStepTabs(); renderStepContent(); } }, 200);
+}
+
+function renderStep3(r) {
+  return `
+    <div class="step-h">③ 実施内容を確認</div>
+    <div class="ocr-banner high">
+      <svg class="conf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <div>OCR で抽出された値が入力済みです。必要に応じて修正してください。</div>
+    </div>
+    <div class="field-block">
+      <label>実施日<span class="req">*</span></label>
+      <input type="date" class="form-control" value="${r.performedOn}" onchange="processingRecords[${currentIdx}].performedOn = this.value">
+    </div>
+    <div class="field-block">
+      <label>整備区分（複数選択可）</label>
+      <div class="checkbox-grid">
+        <label class="check-pill"><input type="checkbox" ${r.checks.regular ? 'checked' : ''} onchange="processingRecords[${currentIdx}].checks.regular = this.checked"> <span>定期点検</span></label>
+        <label class="check-pill"><input type="checkbox" ${r.checks.threeMonth ? 'checked' : ''} onchange="processingRecords[${currentIdx}].checks.threeMonth = this.checked"> <span>3ヶ月点検</span></label>
+        <label class="check-pill"><input type="checkbox" ${r.checks.vehicleInsp ? 'checked' : ''} onchange="processingRecords[${currentIdx}].checks.vehicleInsp = this.checked"> <span>車検</span></label>
+        <label class="check-pill"><input type="checkbox" onchange="processingRecords[${currentIdx}].checks.daily = this.checked"> <span>日常点検</span></label>
+      </div>
+    </div>
+    <div class="field-block">
+      <label>担当ドライバー</label>
+      <select class="form-control" onchange="processingRecords[${currentIdx}].driverId = this.value">
+        ${drivers.map(d => `<option value="${d.id}" ${d.id === r.driverId ? 'selected' : ''}>${d.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field-block">
+      <label>整備実施者</label>
+      <input type="text" class="form-control" value="${r.ocrInspectorName}" onchange="processingRecords[${currentIdx}].inspectorName = this.value">
+    </div>
+    <div class="field-block">
+      <label>走行距離（km）</label>
+      <input type="number" class="form-control" value="${r.mileage}" onchange="processingRecords[${currentIdx}].mileage = parseInt(this.value)">
+    </div>
+  `;
+}
+
+// ==========================================================
+// FINISH
+// ==========================================================
+function finishAll() {
+  const total = processingRecords.length;
+  const confirmed = processingRecords.filter(r => r.status === 'confirmed').length;
+  const tentative = processingRecords.filter(r => r.status === 'tentative').length;
+  const skipped = processingRecords.filter(r => r.status === 'skipped').length;
+  const pending = total - confirmed - tentative - skipped;
+  document.getElementById('summary-headline').textContent = `${total}件の記録簿を処理しました`;
+  document.getElementById('summary-grid').innerHTML = `
+    <div class="summary-tile success">
+      <div class="big">${confirmed}</div>
+      <div class="lbl">確定</div>
+    </div>
+    <div class="summary-tile warn">
+      <div class="big">${tentative + pending}</div>
+      <div class="lbl">${tentative > 0 ? '仮確定 / 要確認' : '要確認'}</div>
+    </div>
+    <div class="summary-tile danger">
+      <div class="big">${skipped}</div>
+      <div class="lbl">スキップ</div>
+    </div>
+  `;
+  document.getElementById('overlay-review').classList.remove('show');
+  document.getElementById('overlay-summary').classList.add('show');
+
+  // テーブルの該当行に実績を反映（モック）
+  processingRecords.filter(r => r.status === 'confirmed').forEach(r => {
+    const v = vehicles.find(x => x.id === r.vehicleId);
+    if (!v) return;
+    const row = tableRows.find(t => t.id === v.id);
+    if (row) {
+      const idx = row.months.findIndex(m => m.plan && !m.done);
+      if (idx >= 0) row.months[idx].done = true;
+    }
+  });
+  renderTable();
+}
+
+// ==========================================================
+// TOAST
+// ==========================================================
+function showToast(text, kind) {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind ? ' ' + kind : '');
+  t.innerHTML = `
+    ${kind === 'success' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+    <span>${text}</span>
+  `;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ESC で閉じる
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const reviewOpen = document.getElementById('overlay-review').classList.contains('show');
+    if (reviewOpen) {
+      confirmCloseReview();
+    } else {
+      closeAllModals();
+    }
+  }
+});
+</script>
+</body>
+</html>
